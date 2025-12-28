@@ -18,27 +18,10 @@ if not api_key and "GOOGLE_API_KEY" in st.secrets:
 
 genai.configure(api_key=api_key)
 
-# --- INTELLIGENT MODEL SELECTOR ---
-def get_working_model():
-    """
-    Selects the best model from your specific available list.
-    Prioritizes 'Lite' for speed/quota, then 'Flash'.
-    """
-    # These are the exact names from your list
-    priority_list = [
-        "gemini-2.0-flash-lite-001",  # Best for high volume/low quota
-        "gemini-2.0-flash-lite",      # Fallback alias
-        "gemini-2.0-flash",           # Powerful but lower quota
-        "gemini-2.5-flash",           # Bleeding edge
-        "gemini-flash-latest"         # Generic alias
-    ]
-    
-    # We return the first one that works, but we default to the specific Lite version
-    # because it matches your provided list perfectly at Index 7.
-    return "gemini-2.0-flash-lite-001"
-
-# Set the model name
-MODEL_NAME = get_working_model()
+# --- MODEL SELECTION ---
+# We use the generic alias. This routes to the most stable 
+# free-tier model available to your specific account.
+MODEL_NAME = "gemini-flash-latest"
 
 # --- LOGIC ---
 
@@ -72,7 +55,6 @@ def extract_chemicals_from_pdf(uploaded_file):
         clean_json = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(clean_json)
     except Exception as e:
-        # Fallback for "Safety Filter" or "Quota" errors
         st.error(f"AI Error: {e}")
         return {"chemicals": []}
 
@@ -118,7 +100,7 @@ def get_regulatory_limits(chemicals_list):
 # --- UI ---
 st.title("🛡️ EHS Compliance Agent")
 st.markdown("### Regulatory Cross-Reference (OSHA vs. Cal/OSHA vs. NIOSH)")
-st.caption(f"Powered by **{MODEL_NAME}** (Optimized for your account)")
+st.caption(f"Powered by **{MODEL_NAME}** (Stable Channel)")
 
 uploaded_file = st.file_uploader("Upload SDS (PDF)", type=["pdf"])
 
