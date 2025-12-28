@@ -35,8 +35,8 @@ def extract_chemicals_from_pdf(uploaded_file):
         time.sleep(1)
         g_file = genai.get_file(g_file.name)
         
-    # FIX: Use the specific 001 version which is most stable
-    model = genai.GenerativeModel('gemini-1.5-flash-001') 
+    # BACK TO STANDARD FLASH (Requires SDK 0.8.3+)
+    model = genai.GenerativeModel('gemini-1.5-flash') 
     prompt = """
     You are an AI Robot that extracts data.
     1. Look at Section 3 (Composition) of this SDS.
@@ -50,8 +50,8 @@ def extract_chemicals_from_pdf(uploaded_file):
 
 def get_regulatory_limits(chemicals_list):
     """Step 2: Strict Lookup for OSHA, Cal/OSHA, and NIOSH"""
-    # FIX: Use the specific 001 version which is most stable
-    model = genai.GenerativeModel('gemini-1.5-flash-001')
+    # BACK TO STANDARD FLASH
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = f"""
     You are a Certified Industrial Hygienist (CIH).
