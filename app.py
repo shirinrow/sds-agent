@@ -18,6 +18,32 @@ if not api_key and "GOOGLE_API_KEY" in st.secrets:
 
 genai.configure(api_key=api_key)
 
+# --- HELPER: AUTO-DETECT MODEL ---
+def get_best_model_name():
+    """Finds a working model automatically to prevent 404 errors"""
+    try:
+        # Ask Google what models are available
+        for m in genai.list_models():
+            # We look for a model that supports content generation
+            if 'generateContent' in m.supported_generation_methods:
+                # Prefer the stable Flash model
+                if 'gemini-1.5-flash' in m.name and '001' in m.name:
+                    return m.name
+                # Fallback to any Flash model
+                if 'gemini-1.5-flash' in m.name:
+                    return m.name
+        
+        # If we can't find Flash, try Pro
+        return 'gemini-1.5-pro'
+    except Exception as e:
+        # If listing fails, default to the standard safe name
+        return 'gemini-1.5-flash'
+
+# Set the model name once at startup
+MODEL_NAME = get_best_model_name()
+# Debug: Show the user which model was picked (optional, good for troubleshooting)
+print(f"DEBUG: Selected Model: {MODEL_NAME}")
+
 # --- LOGIC ---
 
 def extract_chemicals_from_pdf(uploaded_file):
@@ -28,15 +54,14 @@ def extract_chemicals_from_pdf(uploaded_file):
         f.write(bytes_data)
         
     status_text = st.empty()
-    status_text.write("🚀 Reading SDS PDF...")
+    status_text.write(f"🚀 Reading SDS using {MODEL_NAME}...")
     
     g_file = genai.upload_file(path="temp.pdf", display_name="SDS")
     while g_file.state.name == "PROCESSING":
         time.sleep(1)
         g_file = genai.get_file(g_file.name)
         
-    # BACK TO STANDARD FLASH (Requires SDK 0.8.3+)
-    model = genai.GenerativeModel('gemini-1.5-flash') 
+    model = genai.GenerativeModel(MODEL_NAME)
     prompt = """
     You are an AI Robot that extracts data.
     1. Look at Section 3 (Composition) of this SDS.
@@ -50,8 +75,7 @@ def extract_chemicals_from_pdf(uploaded_file):
 
 def get_regulatory_limits(chemicals_list):
     """Step 2: Strict Lookup for OSHA, Cal/OSHA, and NIOSH"""
-    # BACK TO STANDARD FLASH
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel(MODEL_NAME)
     
     prompt = f"""
     You are a Certified Industrial Hygienist (CIH).
@@ -88,6 +112,9 @@ def get_regulatory_limits(chemicals_list):
 st.title("🛡️ EHS Compliance Agent")
 st.markdown("### Regulatory Cross-Reference (OSHA vs. Cal/OSHA vs. NIOSH)")
 st.caption("Upload an SDS to audit safety limits and download the report in Excel.")
+
+# Add a tiny debugger at the bottom so we know what's happening
+st.sidebar.caption(f"🤖 AI Engine: `{MODEL_NAME}`")
 
 uploaded_file = st.file_uploader("Upload SDS (PDF)", type=["pdf"])
 
