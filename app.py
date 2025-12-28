@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 st.set_page_config(page_title="EHS Compliance Agent", page_icon="🛡️", layout="wide")
 load_dotenv()
 
-# Handle API Key (Works for both Local .env and Streamlit Cloud Secrets)
+# Handle API Key
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key and "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
@@ -22,10 +22,8 @@ genai.configure(api_key=api_key)
 
 def extract_chemicals_from_pdf(uploaded_file):
     """Step 1: Read the PDF to get the ingredients"""
-    # Use BytesIO to handle file in memory (cleaner than saving temp.pdf)
     bytes_data = uploaded_file.getvalue()
     
-    # Upload to Gemini (we use a temporary file path for the upload function)
     with open("temp.pdf", "wb") as f:
         f.write(bytes_data)
         
@@ -37,7 +35,8 @@ def extract_chemicals_from_pdf(uploaded_file):
         time.sleep(1)
         g_file = genai.get_file(g_file.name)
         
-    model = genai.GenerativeModel('gemini-2.0-flash') # Updated to 2.0 Flash (Fastest)
+    # SWITCHED TO STABLE MODEL
+    model = genai.GenerativeModel('gemini-1.5-flash') 
     prompt = """
     You are an AI Robot that extracts data.
     1. Look at Section 3 (Composition) of this SDS.
@@ -51,7 +50,8 @@ def extract_chemicals_from_pdf(uploaded_file):
 
 def get_regulatory_limits(chemicals_list):
     """Step 2: Strict Lookup for OSHA, Cal/OSHA, and NIOSH"""
-    model = genai.GenerativeModel('gemini-2.0-flash')
+    # SWITCHED TO STABLE MODEL
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = f"""
     You are a Certified Industrial Hygienist (CIH).
